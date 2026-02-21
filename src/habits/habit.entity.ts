@@ -33,7 +33,9 @@ export class Habit {
   @ManyToOne(() => User, (user) => user.id)
   user: User;
 
-  @OneToMany(() => HabitPlan, (plan) => plan.habit, { cascade: true })
+  @OneToMany(() => HabitPlan, (plan: HabitPlan) => plan.habit, {
+    cascade: true,
+  })
   plans: HabitPlan[];
 
   @CreateDateColumn()

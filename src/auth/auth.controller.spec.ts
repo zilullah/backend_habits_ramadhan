@@ -1,21 +1,20 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AuthController } from './auth.controller';
-import { AuthService } from './auth.service';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
+import { AuthController } from './auth.controller.js';
+import { AuthService } from './auth.service.js';
+import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 
 describe('AuthController', () => {
   let controller: AuthController;
-  let authService: AuthService;
-
-  const mockAuthService = {
-    register: jest.fn(),
-    login: jest.fn(),
-    refreshTokens: jest.fn(),
-    logout: jest.fn(),
-  };
+  let mockAuthService: Record<string, jest.Mock>;
 
   beforeEach(async () => {
+    mockAuthService = {
+      register: jest.fn(),
+      login: jest.fn(),
+      refreshTokens: jest.fn(),
+      logout: jest.fn(),
+    } as Record<string, jest.Mock>;
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
       providers: [
@@ -24,10 +23,12 @@ describe('AuthController', () => {
           useValue: mockAuthService,
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<AuthController>(AuthController);
-    authService = module.get<AuthService>(AuthService);
   });
 
   it('should be defined', () => {
@@ -36,51 +37,59 @@ describe('AuthController', () => {
 
   describe('register', () => {
     it('should register a user', async () => {
-      const dto: RegisterDto = {
+      const dto = {
         email: 'test@example.com',
-        password: 'password123',
-        name: 'Test User',
+        password: 'password',
+        name: 'Test',
       };
-      const result = { accessToken: 'access', refreshToken: 'refresh' };
-      mockAuthService.register.mockResolvedValue(result);
+      const tokens = { accessToken: 'at', refreshToken: 'rt' };
+      mockAuthService.register.mockResolvedValue(tokens);
 
-      expect(await controller.register(dto)).toBe(result);
-      expect(authService.register).toHaveBeenCalledWith(dto);
+      const result = await controller.register(dto);
+      expect(result).toBe(tokens);
+      expect(mockAuthService.register).toHaveBeenCalledWith(dto);
     });
   });
 
   describe('login', () => {
     it('should login a user', async () => {
-      const dto: LoginDto = {
-        email: 'test@example.com',
-        password: 'password123',
-      };
-      const result = { accessToken: 'access', refreshToken: 'refresh' };
-      mockAuthService.login.mockResolvedValue(result);
+      const dto = { email: 'test@example.com', password: 'password' };
+      const tokens = { accessToken: 'at', refreshToken: 'rt' };
+      mockAuthService.login.mockResolvedValue(tokens);
 
-      expect(await controller.login(dto)).toBe(result);
-      expect(authService.login).toHaveBeenCalledWith(dto);
+      const result = await controller.login(dto);
+      expect(result).toBe(tokens);
+      expect(mockAuthService.login).toHaveBeenCalledWith(dto);
     });
   });
 
   describe('refresh', () => {
     it('should refresh tokens', async () => {
-      const req = { user: { sub: 'user-id', refreshToken: 'old-refresh' } };
-      const result = { accessToken: 'new-access', refreshToken: 'new-refresh' };
-      mockAuthService.refreshTokens.mockResolvedValue(result);
+      const tokens = { accessToken: 'at2', refreshToken: 'rt2' };
+      mockAuthService.refreshTokens.mockResolvedValue(tokens);
 
-      expect(await controller.refresh(req)).toBe(result);
-      expect(authService.refreshTokens).toHaveBeenCalledWith('user-id', 'old-refresh');
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      const result = await controller.refresh({
+        user: { sub: 'user-id', refreshToken: 'old-refresh' },
+      } as any);
+      expect(result).toBe(tokens);
+      expect(mockAuthService.refreshTokens).toHaveBeenCalledWith(
+        'user-id',
+        'old-refresh',
+      );
     });
   });
 
   describe('logout', () => {
     it('should logout a user', async () => {
-      const req = { user: { sub: 'user-id' } };
       mockAuthService.logout.mockResolvedValue(undefined);
 
-      expect(await controller.logout(req)).toEqual({ message: 'Logged out successfully' });
-      expect(authService.logout).toHaveBeenCalledWith('user-id');
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      const result = await controller.logout({
+        user: { sub: 'user-id' },
+      } as any);
+      expect(result).toEqual({ message: 'Logged out successfully' });
+      expect(mockAuthService.logout).toHaveBeenCalledWith('user-id');
     });
   });
 });

@@ -1,16 +1,30 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { HabitsController } from './habits.controller';
-import { HabitsService } from './habits.service';
+import { HabitsController } from './habits.controller.js';
+import { HabitsService } from './habits.service.js';
+import { CreateHabitDto } from './dto/create-habit.dto.js';
+import { Request } from 'express';
+
+interface RequestWithUser extends Request {
+  user: {
+    sub: string;
+    email: string;
+  };
+}
 
 describe('HabitsController', () => {
   let controller: HabitsController;
-  let habitsService: HabitsService;
-
-  const mockHabitsService = {
-    createHabit: jest.fn(),
-  };
+  let mockHabitsService: Record<string, jest.Mock>;
 
   beforeEach(async () => {
+    const internalMockHabitsService = {
+      createHabit: jest.fn(),
+      getTodayPlans: jest.fn(),
+    };
+    mockHabitsService = internalMockHabitsService as unknown as Record<
+      string,
+      jest.Mock
+    >;
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [HabitsController],
       providers: [
@@ -22,7 +36,6 @@ describe('HabitsController', () => {
     }).compile();
 
     controller = module.get<HabitsController>(HabitsController);
-    habitsService = module.get<HabitsService>(HabitsService);
   });
 
   it('should be defined', () => {
@@ -31,20 +44,30 @@ describe('HabitsController', () => {
 
   describe('create', () => {
     it('should create a habit', async () => {
-      const dto = {
-        name: 'Khatam 30 Juz',
+      const dto: CreateHabitDto = {
+        name: 'Quran',
         totalTarget: 30,
-        targetUnit: 'juz',
-        durationDays: 30,
-        startDate: '2023-01-01',
+        targetUnit: 'Juz',
       };
-      const req = { user: { sub: 'user-id' } };
-      const result = { id: 'habit-id', ...dto, plans: [] };
-      
-      mockHabitsService.createHabit.mockResolvedValue(result);
+      const user = { sub: 'user-id', email: 'test@example.com' };
+      const req = { user } as unknown as RequestWithUser;
+      const expectedResult = { id: 'habit-1', ...dto };
+      mockHabitsService.createHabit.mockResolvedValue(expectedResult);
 
-      expect(await controller.create(dto, req)).toBe(result);
-      expect(habitsService.createHabit).toHaveBeenCalledWith(dto, req.user);
+      const result = await controller.create(dto, req);
+      expect(result).toEqual(expectedResult);
+    });
+  });
+
+  describe('getToday', () => {
+    it('should return today plans', async () => {
+      const user = { sub: 'user-id', email: 'test@example.com' };
+      const req = { user } as unknown as RequestWithUser;
+      const expectedResult = [{ id: 'habit-1', name: 'Quran' }];
+      mockHabitsService.getTodayPlans.mockResolvedValue(expectedResult);
+
+      const result = await controller.getToday(req);
+      expect(result).toEqual(expectedResult);
     });
   });
 });

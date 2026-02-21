@@ -30,7 +30,7 @@ export class ProgressService {
     const isBehind = actualValue < plan.targetValue;
     plan.actualValue = actualValue;
     plan.isCompleted = actualValue >= plan.targetValue;
-    
+
     await this.habitPlanRepository.save(plan);
 
     // Trigger recalculation for the entire habit

@@ -1,16 +1,21 @@
-import { Controller, Post, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, UseGuards, Request } from '@nestjs/common';
 import { AiService } from './ai.service.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+
+interface RequestWithUser extends Request {
+  user: {
+    sub: string;
+    email: string;
+  };
+}
 
 @Controller('ai')
 @UseGuards(JwtAuthGuard)
 export class AiController {
   constructor(private readonly aiService: AiService) {}
 
-  @Post('motivation')
-  async getMotivation(@Request() req: any) {
-    const userId = req.user.sub;
-    const message = await this.aiService.generateMotivation(userId);
-    return { motivation: message };
+  @Get('motivation')
+  async getMotivation(@Request() req: RequestWithUser) {
+    return this.aiService.generateMotivation(req.user.sub);
   }
 }

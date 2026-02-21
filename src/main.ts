@@ -21,4 +21,4 @@ async function bootstrap() {
     `🚀 Application is running on: http://localhost:${process.env.PORT ?? 3000}`,
   );
 }
-bootstrap();
+bootstrap().catch((err: Error) => console.error(err));

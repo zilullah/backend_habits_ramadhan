@@ -31,7 +31,7 @@ export class HabitsService {
     return this.habitRepository.find({
       where: {
         user: { id: userId },
-        plans: { date: today as any },
+        plans: { date: today as unknown as Date },
       },
       relations: ['plans'],
     });

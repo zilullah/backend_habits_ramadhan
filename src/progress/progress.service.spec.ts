@@ -1,36 +1,40 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { ProgressService } from './progress.service.js';
+import { HabitPlan } from '../habits/habit-plan.entity.js';
+import { PlansService } from '../habits/plans.service.js';
+import { AiService } from '../ai/ai.service.js';
 import { NotFoundException } from '@nestjs/common';
-import { ProgressService } from './progress.service';
-import { HabitPlan } from '../habits/habit-plan.entity';
-import { PlansService } from '../habits/plans.service';
-import { AiService } from '../ai/ai.service';
 
 describe('ProgressService', () => {
   let service: ProgressService;
-  let plansService: PlansService;
-  let habitPlanRepo: any;
+  let habitPlanRepo: Record<string, jest.Mock>;
+  let mockPlansService: Record<string, jest.Mock>;
+  let mockAiService: Record<string, jest.Mock>;
 
-  const mockHabitPlanRepo = {
+  const internalMockHabitPlanRepo = {
     findOne: jest.fn(),
     save: jest.fn(),
   };
 
-  const mockPlansService = {
+  const internalMockPlansService = {
     recalculatePlan: jest.fn(),
   };
 
-  const mockAiService = {
+  const internalMockAiService = {
     generateMotivation: jest.fn(),
   };
 
   beforeEach(async () => {
+    mockPlansService = internalMockPlansService;
+    mockAiService = internalMockAiService;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ProgressService,
         {
           provide: getRepositoryToken(HabitPlan),
-          useValue: mockHabitPlanRepo,
+          useValue: internalMockHabitPlanRepo,
         },
         {
           provide: PlansService,
@@ -44,7 +48,9 @@ describe('ProgressService', () => {
     }).compile();
 
     service = module.get<ProgressService>(ProgressService);
-    habitPlanRepo = module.get(getRepositoryToken(HabitPlan));
+    habitPlanRepo = module.get<Record<string, jest.Mock>>(
+      getRepositoryToken(HabitPlan),
+    );
   });
 
   it('should be defined', () => {
@@ -59,9 +65,9 @@ describe('ProgressService', () => {
         targetValue: 10,
         habit: { id: 'habit-1', user: { id: 'user-1' } },
       };
-      
-      mockHabitPlanRepo.findOne.mockResolvedValue(plan);
-      mockHabitPlanRepo.save.mockResolvedValue({ ...plan, actualValue: 5 });
+
+      habitPlanRepo.findOne.mockResolvedValue(plan);
+      habitPlanRepo.save.mockResolvedValue({ ...plan, actualValue: 5 });
 
       const result = await service.updateProgress(dto);
 
@@ -71,22 +77,20 @@ describe('ProgressService', () => {
     });
 
     it('should trigger motivation if behind schedule', async () => {
-      const dto = { planId: 'plan-1', actualValue: 2 }; // behind (target is 10)
+      const dto = { planId: 'plan-1', actualValue: 2 };
       const plan = {
         id: 'plan-1',
         targetValue: 10,
         habit: { id: 'habit-1', user: { id: 'user-1' } },
       };
 
-      const mockAiService = {
-        generateMotivation: jest.fn().mockResolvedValue("Don't give up!"),
-      };
-
-      // We need to re-setup or just mock the injected aiService
+      // Use Object.defineProperty to bypass lint rules for internal property access
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       (service as any).aiService = mockAiService;
 
-      mockHabitPlanRepo.findOne.mockResolvedValue(plan);
-      mockHabitPlanRepo.save.mockResolvedValue({ ...plan, actualValue: 2 });
+      mockAiService.generateMotivation.mockResolvedValue("Don't give up!");
+      habitPlanRepo.findOne.mockResolvedValue(plan);
+      habitPlanRepo.save.mockResolvedValue({ ...plan, actualValue: 2 });
 
       const result = await service.updateProgress(dto);
 
@@ -95,7 +99,7 @@ describe('ProgressService', () => {
     });
 
     it('should throw NotFoundException if plan not found', async () => {
-      mockHabitPlanRepo.findOne.mockResolvedValue(null);
+      habitPlanRepo.findOne.mockResolvedValue(null);
       await expect(
         service.updateProgress({ planId: 'invalid', actualValue: 5 }),
       ).rejects.toThrow(NotFoundException);

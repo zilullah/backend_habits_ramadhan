@@ -1,17 +1,22 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ProgressController } from './progress.controller';
-import { ProgressService } from './progress.service';
-import { UpdateProgressDto } from './dto/update-progress.dto';
+import { ProgressController } from './progress.controller.js';
+import { ProgressService } from './progress.service.js';
+import { UpdateProgressDto } from './dto/update-progress.dto.js';
 
 describe('ProgressController', () => {
   let controller: ProgressController;
-  let progressService: ProgressService;
+  let mockProgressService: Record<string, jest.Mock>;
 
-  const mockProgressService = {
+  const internalMockProgressService = {
     updateProgress: jest.fn(),
   };
 
   beforeEach(async () => {
+    mockProgressService = internalMockProgressService as unknown as Record<
+      string,
+      jest.Mock
+    >;
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ProgressController],
       providers: [
@@ -23,7 +28,6 @@ describe('ProgressController', () => {
     }).compile();
 
     controller = module.get<ProgressController>(ProgressController);
-    progressService = module.get<ProgressService>(ProgressService);
   });
 
   it('should be defined', () => {
@@ -39,8 +43,9 @@ describe('ProgressController', () => {
       const result = { id: 'plan-id', actualValue: 5, isCompleted: true };
       mockProgressService.updateProgress.mockResolvedValue(result);
 
-      expect(await controller.update(dto)).toBe(result);
-      expect(progressService.updateProgress).toHaveBeenCalledWith(dto);
+      const response = await controller.update(dto);
+      expect(response).toBe(result);
+      expect(mockProgressService.updateProgress).toHaveBeenCalledWith(dto);
     });
   });
 });

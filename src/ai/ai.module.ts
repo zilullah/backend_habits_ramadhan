@@ -6,9 +6,7 @@ import { Habit } from '../habits/habit.entity.js';
 import { HabitPlan } from '../habits/habit-plan.entity.js';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Habit, HabitPlan]),
-  ],
+  imports: [TypeOrmModule.forFeature([Habit, HabitPlan])],
   controllers: [AiController],
   providers: [AiService],
   exports: [AiService],

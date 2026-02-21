@@ -46,8 +46,14 @@ export class PlansService {
       order: { date: 'ASC' },
     });
 
-    const totalProgress = allPlans.reduce((sum, p) => sum + (p.actualValue || 0), 0);
-    const remainingTarget = Math.max(0, actualHabit.totalTarget - totalProgress);
+    const totalProgress = allPlans.reduce(
+      (sum, p) => sum + (p.actualValue || 0),
+      0,
+    );
+    const remainingTarget = Math.max(
+      0,
+      actualHabit.totalTarget - totalProgress,
+    );
 
     const todayStr = new Date().toISOString().split('T')[0];
     const futurePlans = allPlans.filter((p) => {

@@ -13,6 +13,14 @@ import { LoginDto } from './dto/login.dto.js';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 import { RefreshTokenGuard } from './guards/refresh-token.guard.js';
 
+interface RequestWithUser extends Request {
+  user: {
+    sub: string;
+    email: string;
+    refreshToken: string;
+  };
+}
+
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -31,7 +39,7 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @UseGuards(RefreshTokenGuard)
-  async refresh(@Request() req: any) {
+  async refresh(@Request() req: RequestWithUser) {
     const userId = req.user.sub;
     const refreshToken = req.user.refreshToken;
     return this.authService.refreshTokens(userId, refreshToken);
@@ -40,7 +48,7 @@ export class AuthController {
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
-  async logout(@Request() req: any) {
+  async logout(@Request() req: RequestWithUser) {
     await this.authService.logout(req.user.sub);
     return { message: 'Logged out successfully' };
   }
