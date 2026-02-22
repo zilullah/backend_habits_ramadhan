@@ -48,6 +48,8 @@ describe('HabitsController', () => {
         name: 'Quran',
         totalTarget: 30,
         targetUnit: 'Juz',
+        durationDays: 30,
+        startDate: '2026-02-22',
       };
       const user = { sub: 'user-id', email: 'test@example.com' };
       const req = { user } as unknown as RequestWithUser;

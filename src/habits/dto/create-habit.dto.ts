@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsOptional } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsDateString } from 'class-validator';
 
 export class CreateHabitDto {
   @IsString()
@@ -13,4 +13,10 @@ export class CreateHabitDto {
   @IsString()
   @IsOptional()
   description?: string;
+
+  @IsNumber()
+  durationDays: number;
+
+  @IsDateString()
+  startDate: string;
 }

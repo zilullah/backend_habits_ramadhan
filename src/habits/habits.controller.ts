@@ -3,9 +3,10 @@ import {
   Post,
   Body,
   UseGuards,
-  Request,
+  Request as Req,
   Get,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { HabitsService } from './habits.service.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 
@@ -24,14 +25,14 @@ export class HabitsController {
   constructor(private readonly habitsService: HabitsService) {}
 
   @Get('today')
-  async getToday(@Request() req: RequestWithUser) {
+  async getToday(@Req() req: RequestWithUser) {
     return this.habitsService.getTodayPlans(req.user.sub);
   }
 
   @Post()
   async create(
     @Body() createHabitDto: CreateHabitDto,
-    @Request() req: RequestWithUser,
+    @Req() req: RequestWithUser,
   ) {
     // req.user comes from JwtAuthGuard/Strategy
     return this.habitsService.createHabit(createHabitDto, req.user);
